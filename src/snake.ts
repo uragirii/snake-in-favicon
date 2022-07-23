@@ -17,7 +17,6 @@ const KEY_TO_DIRECTION: Record<string, Direction> = {
 };
 
 export class Snake {
-  private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
   private snakePositions: Coordinate[] = [];
   private foodCoordinate: Coordinate | null = null;
@@ -31,7 +30,6 @@ export class Snake {
   onEnd: ((point: number) => void) | null = null;
 
   constructor(canvas: HTMLCanvasElement) {
-    this.canvas = canvas;
     const ctx = canvas.getContext("2d");
     if (!ctx) {
       throw new Error("Context is not defined");
