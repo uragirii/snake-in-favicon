@@ -4,9 +4,9 @@
   line-height: 24px;
   font-weight: 400;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  /* color-scheme: light dark; */
+  /* color: rgba(255, 255, 255, 0.87); */
+  background-color: wheat;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -19,4 +19,17 @@ canvas {
   height: 100px;
   width: 100px;
   background-color: white;
+}
+
+#container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+button {
+  padding: 0.4em 0.7em;
+  font-size: 1em;
+  outline: none;
 }

@@ -1,7 +1,8 @@
 import { Snake } from "./snake";
 import "./style.css";
 
-const RAW_CANVAS = document.getElementsByTagName("canvas")[0];
+const RAW_CANVAS = document.createElement("canvas");
+const playButton = document.getElementById("playBtn");
 
 RAW_CANVAS.height = 100;
 RAW_CANVAS.width = 100;
@@ -29,13 +30,40 @@ const setFavicon = (imgSrc: string) => {
 
 const getImgSrc = (canvas = RAW_CANVAS) => {
   const image = canvas.toDataURL("image/png");
-  console.log(image);
   return image;
 };
 
 const updateFavicon = () => setFavicon(getImgSrc());
 
-const snake = new Snake(RAW_CANVAS);
-snake.start();
+if (playButton) {
+  playButton.onclick = () => {
+    const h2 = document.getElementById("points");
+    if (!h2) {
+      return;
+    }
+    h2.innerText = `Score : 0`;
+    const snake = new Snake(RAW_CANVAS);
+    snake.start();
+    snake.onDraw = () => updateFavicon();
+    snake.onPoint = (point) => {
+      h2.innerText = `Score : ${point}`;
+    };
+    snake.onEnd = (point) => {
+      h2.innerText = `Score : ${point} Game Ended`;
+      playButton.innerText = "Play Again";
+      playButton.style.display = "block";
+    };
+    playButton.style.display = "none";
+  };
+}
 
-updateFavicon();
+// const snake = new Snake(RAW_CANVAS);
+// snake.start();
+// snake.onDraw = () => updateFavicon();
+// snake.onPoint = (point) => {
+//   const h2 = document.getElementById("points");
+//   if (!h2) {
+//     return;
+//   }
+//   h2.innerText = point.toString();
+// };
