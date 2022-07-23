@@ -9,13 +9,26 @@ export type Direction = "up" | "down" | "left" | "right";
 
 export type Coordinate = { x: number; y: number };
 
+const KEY_TO_DIRECTION: Record<string, Direction> = {
+  ArrowLeft: "left",
+  ArrowRight: "right",
+  ArrowUp: "up",
+  ArrowDown: "down",
+};
+
 export class Snake {
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
   private snakePositions: Coordinate[] = [];
   private foodCoordinate: Coordinate | null = null;
-  private moveDirection: Direction = "right";
+  private moveDirection: Direction = "down";
   private lastDirection: Direction | null = null;
+  private ended: boolean = false;
+  private points = 0;
+
+  onDraw: (() => void) | null = null;
+  onPoint: ((point: number) => void) | null = null;
+  onEnd: ((point: number) => void) | null = null;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -27,12 +40,109 @@ export class Snake {
     this.ctx = ctx;
   }
 
-  move(direction: Direction) {
-    console.log(`Moving snake : ${direction}`);
+  move(direction: Direction): void {
+    if (this.ended) {
+      return;
+    }
+    let newPoint: Coordinate | null = null;
+    const { x, y } = this.snakePositions[0];
 
-    this.moveDirection = "left";
+    switch (direction) {
+      case "right": {
+        if (this.lastDirection === "left") {
+          return this.move(this.lastDirection);
+        }
 
-    console.warn("Snake.move is not implemented");
+        const newX =
+          x >= CANVAS_WIDTH - SQUARE_WIDTH / 2 ? 0 : x + SQUARE_WIDTH;
+
+        newPoint = { x: newX, y };
+
+        this.lastDirection = "right";
+
+        break;
+      }
+      case "left": {
+        if (this.lastDirection === "right") {
+          return this.move(this.lastDirection);
+        }
+
+        newPoint = {
+          x:
+            x <= SQUARE_WIDTH / 2
+              ? CANVAS_WIDTH - SQUARE_WIDTH / 2
+              : x - SQUARE_WIDTH,
+          y,
+        };
+
+        this.lastDirection = "left";
+
+        break;
+      }
+      case "down": {
+        if (this.lastDirection === "up") {
+          return this.move(this.lastDirection);
+        }
+
+        newPoint = {
+          x,
+          y:
+            y >= CANVAS_HEIGHT - SQUARE_HEIGHT / 2
+              ? SQUARE_HEIGHT / 2
+              : y + SQUARE_HEIGHT,
+        };
+        this.lastDirection = "down";
+
+        break;
+      }
+      case "up": {
+        if (this.lastDirection === "down") {
+          return this.move(this.lastDirection);
+        }
+
+        newPoint = {
+          x,
+          y:
+            y <= SQUARE_HEIGHT / 2
+              ? CANVAS_HEIGHT - SQUARE_HEIGHT / 2
+              : y - SQUARE_HEIGHT,
+        };
+
+        this.lastDirection = "up";
+
+        break;
+      }
+    }
+
+    if (!newPoint) {
+      return;
+    }
+
+    if (this.isPointInsideSnake(newPoint)) {
+      this.ended = true;
+      this.onEnd?.(this.points);
+
+      return;
+    }
+
+    this.snakePositions.unshift(newPoint);
+    const lastPoint = this.snakePositions.pop();
+
+    // const snakeHead = this.snakePositions[0];
+
+    if (
+      this.foodCoordinate &&
+      lastPoint &&
+      (this.pointsOverlapping(newPoint, this.foodCoordinate) ||
+        this.arePointsSame(newPoint, this.foodCoordinate))
+    ) {
+      this.foodCoordinate = this.getSafePoint();
+      this.snakePositions.push(lastPoint);
+      this.points++;
+      this.onPoint?.(this.points);
+    }
+
+    this.drawSnake();
   }
 
   private getVerticesFromCenter(
@@ -58,7 +168,15 @@ export class Snake {
     return [topLeft, topRight, bottomRight, bottomLeft] as const;
   }
 
+  private arePointsSame(point1: Coordinate, point2: Coordinate): boolean {
+    return point1.x === point2.x && point1.y === point2.y;
+  }
+
   private pointsOverlapping(point1: Coordinate, point2: Coordinate): boolean {
+    if (this.arePointsSame(point1, point2)) {
+      return true;
+    }
+
     const rect1 = this.getVerticesFromCenter(point1);
 
     // Overlap condition is any one point of Rect1 is inside or on Rect2 boundary
@@ -70,18 +188,25 @@ export class Snake {
 
     for (const point of rect1) {
       const { x, y } = point;
+      if (point1.x === point2.x && y > yRangeStart && y < yRangeEnd) {
+        return true;
+      }
+
+      if (point1.y === point2.y && x > xRangeStart && x < xRangeEnd) {
+        return true;
+      }
 
       if (
-        x >= xRangeStart &&
-        x <= xRangeEnd &&
-        y >= yRangeStart &&
-        y <= yRangeEnd
+        x > xRangeStart &&
+        x < xRangeEnd &&
+        y > yRangeStart &&
+        y < yRangeEnd
       ) {
         return true;
       }
     }
 
-    return false;
+    return this.arePointsSame(point1, point2);
   }
 
   private getRandomCoordinate(): Coordinate {
@@ -165,17 +290,30 @@ export class Snake {
     }
 
     this.foodCoordinate && this.drawPoint(this.foodCoordinate, "green");
+    this.onDraw?.();
   }
 
   start() {
+    this.snakePositions = [];
+    this.points = 0;
+    this.ended = false;
+
     const snakeHead = this.getSafePoint();
     this.snakePositions.push(snakeHead);
     this.foodCoordinate = this.getSafePoint();
 
     this.drawSnake();
 
-    // setInterval(() => {
-    //   this.move(this.moveDirection);
-    // }, 1000);
+    addEventListener("keydown", (e) => {
+      const key = e.key;
+
+      if (Object.keys(KEY_TO_DIRECTION).includes(key)) {
+        this.moveDirection = KEY_TO_DIRECTION[key];
+      }
+    });
+
+    setInterval(() => {
+      if (!this.ended) this.move(this.moveDirection);
+    }, 500);
   }
 }
